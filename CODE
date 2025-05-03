@@ -1,0 +1,674 @@
+#include <iostream>
+#include <string>
+#include <fstream>
+#include <map>
+#include <vector>
+#include <limits>
+#include <iomanip>
+
+using namespace std;
+
+struct Pengguna {
+    string username;
+    string password;
+    string role;
+};
+
+vector<Pengguna> daftarPengguna;
+
+struct Jadwal {
+    string tanggal;
+    string waktu;
+    string deskripsi;
+    Jadwal* next;
+};
+
+struct Obat {
+    string namaObat;
+    string efekObat;
+};
+
+struct Resep {
+    string namaObat;
+    string dosis;
+    string instruksi;
+};
+
+struct Pasien {
+    string nama;
+    string nik;
+    int umur;
+    string tanggalLahir;
+    string alamat;
+    string noTelepon;
+    string tujuanBerobat;
+    string keluhan;
+    vector<Obat> riwayatObat;
+    vector<Resep> daftarResep;   
+    Pasien* next;
+    Jadwal* jadwalHead;
+    
+};
+
+Pasien* head = NULL;
+map<string, pair<string, string>> users;
+
+void tambahPengguna(const string& username, const string& password, const string& role) {
+    daftarPengguna.push_back({username, password, role});
+}
+
+bool validasiPengguna(const string& username, const string& password, string& role) {
+    for (const auto& pengguna : daftarPengguna) {
+        if (pengguna.username == username && pengguna.password == password) {
+            role = pengguna.role;
+            return true;
+        }
+    }
+    return false;
+}
+
+void registrasiPengguna() {
+    string username, password, role;
+    cout << "=== Registrasi Akun Sistem Manajemen Rumah Sakit ===" << endl;
+    cout << "Username: ";
+    cin >> username;
+    cout << "Password: ";
+    cin >> password;
+    cout << "Role (admin/dokter/resepsionis): ";
+    cin >> role;
+
+    if (role != "admin" && role != "dokter" && role != "resepsionis") {
+        cout << "Role kamu tidak valid. Harus admin, dokter, atau resepsionis." << endl;
+        return;
+    }
+
+    for (const auto& pengguna : daftarPengguna) {
+        if (pengguna.username == username) {
+            cout << "Anda sudah terdaftar. Silakan coba lagi." << endl;
+            return;
+        }
+    }
+
+    tambahPengguna(username, password, role);
+    cout << "Registrasi berhasil . Silakan login dengan username dan password Anda." << endl;
+}
+
+
+void tambahPasien(string namaLengkap, string nik, int umur, string tanggalLahir, string alamat, string noTelepon, string tujuanBerobat, string keluhan) {
+    Pasien* pasienBaru = new Pasien();
+    pasienBaru->nama = namaLengkap;
+    pasienBaru->nik = nik;
+    pasienBaru->umur = umur;
+    pasienBaru->tanggalLahir = tanggalLahir;
+    pasienBaru->alamat = alamat;
+    pasienBaru->noTelepon = noTelepon;
+    pasienBaru->tujuanBerobat = tujuanBerobat;
+    pasienBaru->keluhan = keluhan;
+    pasienBaru->next = head;
+    pasienBaru->jadwalHead = NULL;  
+    head = pasienBaru;
+}
+
+void editPasien(string nama) {
+    Pasien* temp = head;
+    while(temp != NULL) {
+        if(temp->nama == nama) {
+            cout << "Pilih Data Pasien yang ingin diedit:\n";
+            cout << "1. Nama\n2. NIK\n3. Umur\n4. Tanggal Lahir\n5. Alamat\n6. No Telepon\n7. Tujuan Berobat\n8. Keluhan\n";
+            int pilihan;
+            cin >> pilihan;
+            cin.ignore();
+            switch(pilihan) {
+                case 1:
+                    cout << "Masukkan Nama Lengkap baru: ";
+                    getline(cin, temp->nama);
+                    break;
+                case 2:
+                    cout << "Masukkan NIK baru: ";
+                    getline(cin, temp->nik);
+                    break;
+                case 3:
+                    cout << "Masukkan Umur baru: ";
+                    cin >> temp->umur;
+                    break;
+                case 4:
+                    cout << "Masukkan Tanggal lahir baru: ";
+                    getline(cin, temp->tanggalLahir);
+                    break;
+                case 5:
+                    cout << "Masukkan Alamat baru: ";
+                    getline(cin, temp->alamat);
+                    break;
+                case 6:
+                    cout << "Masukkan No Telepon baru: ";
+                    getline(cin, temp->noTelepon);
+                    break;
+                case 7:
+                    cout << "Masukkan Tujuan berobat baru (Umum/PoliGigi/THT): ";
+                    getline(cin, temp->tujuanBerobat);
+                    break;
+                case 8:
+                    cout << "Masukkan Keluhan Sakit baru: ";
+                    getline(cin, temp->keluhan);
+                    break;
+                default:
+                    cout << "Pilihan tidak sesuai.\n";
+                    break;
+            }
+            cout << "Data pasien telah diperbarui.\n";
+            return;
+        }
+        temp = temp->next;
+    }
+    cout << "Pasien dengan nama " << nama << " tidak ditemukan, coba cari lagi perhatikan huruf besar dan kecil.\n";
+}
+
+void tambahRiwayatObat(string nama, string namaObat, string efekObat) {
+    Pasien* temp = head;
+    while(temp != NULL) {
+        if(temp->nama == nama) {
+            Obat obatBaru = {namaObat, efekObat};
+            temp->riwayatObat.push_back(obatBaru);
+            cout << "Obat untuk pasien " << nama << " telah ditambahkan.\n";
+            return;
+        }
+        temp = temp->next;
+    }
+    cout << "Pasien dengan nama " << nama << " tidak ditemukan, coba cari lagi perhatikan huruf besar dan kecil.\n";
+}
+
+void editRiwayatObat(string namaPasien) {
+    Pasien* temp = head;
+    while(temp != NULL) {
+        if(temp->nama == namaPasien) {
+            cout << "Masukkan nama obat yang ingin diganti: ";
+            string namaObat;
+            cin.ignore();
+            getline(cin, namaObat);
+            for (auto& obat : temp->riwayatObat) {
+                if (obat.namaObat == namaObat) {
+                    cout << "Masukkan nama obat baru : ";
+                    string namaObatBaru;
+                    getline(cin, namaObatBaru);
+                    if (!namaObatBaru.empty()) {
+                        obat.namaObat = namaObatBaru;
+                    }
+
+                    cout << "Masukkan efek obat baru : ";
+                    string efekObatBaru;
+                    getline(cin, efekObatBaru);
+                    if (!efekObatBaru.empty()) {
+                        obat.efekObat = efekObatBaru;
+                    }
+
+                    cout << "Obat telah diperbarui.\n";
+                    return;
+                }
+            }
+            cout << "Obat dengan nama " << namaObat << " tidak ditemukan.\n";
+            return;
+        }
+        temp = temp->next;
+    }
+    cout << "Pasien dengan nama " << namaPasien << " tidak ditemukan.\n";
+}
+
+void tampilkanPasien() {
+    Pasien* temp = head;
+    int no = 1;
+    cout << left << setw(5) << "No" << setw(20) << "Nama Lengkap" << setw(15) << "NIK" << setw(10) << "Umur" << setw(20) << "Tanggal Lahir" << setw(30) << "Alamat" << setw(15) << "No Telepon" << setw(20) << "Tujuan Berobat" << setw(30) << "Keluhan Pasien" << endl;
+    cout << "----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------" << endl;
+    while(temp != NULL) {
+        cout << left << setw(5) << no++ << setw(20) << temp->nama << setw(15) << temp->nik << setw(10) << temp->umur << setw(20) << temp->tanggalLahir << setw(30) << temp->alamat << setw(15) << temp->noTelepon << setw(20) << temp->tujuanBerobat << setw(30) << temp->keluhan << endl;
+        temp = temp->next;
+    }
+}
+
+void cariPasien(const string& nama) {
+    Pasien* temp = head;
+    while (temp != nullptr) {
+        if (temp->nama == nama) {
+            cout << "Nama: " << temp->nama << ", Umur: " << temp->umur << ", Keluhan: " << temp->keluhan << endl;
+
+            if (!temp->riwayatObat.empty()) {
+                cout << "Obat dari Dokter:\n";
+                for (const auto& obat : temp->riwayatObat) {
+                    cout << "  Nama Obat: " << obat.namaObat << ", Efek: " << obat.efekObat << endl;
+                }
+            }
+
+            if (!temp->daftarResep.empty()) {
+                cout << "Resep dari Dokter:\n";
+                for (const auto& resep : temp->daftarResep) {
+                    cout << "  Nama Obat: " << resep.namaObat << ", Dosis: " << resep.dosis << ", Instruksi: " << resep.instruksi << endl;
+                }
+            }
+
+            if (temp->jadwalHead != nullptr) {
+                cout << "Jadwal Perawatan dengan Dokter:\n";
+                Jadwal* jadwalTemp = temp->jadwalHead;
+                while (jadwalTemp != nullptr) {
+                    cout << "  Tanggal: " << jadwalTemp->tanggal << ", Waktu: " << jadwalTemp->waktu << ", Deskripsi: " << jadwalTemp->deskripsi << endl;
+                    jadwalTemp = jadwalTemp->next;
+                }
+            }
+
+            return;
+        }
+        temp = temp->next;
+    }
+    cout << "Pasien dengan nama " << nama << " tidak ditemukan.\n";
+}
+
+void hapusPasien(string nama) {
+    if(head == NULL) {
+        cout << "Daftar pasien kosong.\n";
+        return;
+    }
+    if(head->nama == nama) {
+        Pasien* temp = head;
+        head = head->next;
+        delete temp;
+        cout << "Pasien dengan nama " << nama << " telah dihapus.\n";
+        return;
+    }
+    Pasien* temp = head;
+    while(temp->next != NULL) {
+        if(temp->next->nama == nama) {
+            Pasien* toDelete = temp->next;
+            temp->next = temp->next->next;
+            delete toDelete;
+            cout << "Pasien dengan nama " << nama << " telah dihapus.\n";
+            return;
+        }
+        temp = temp->next;
+    }
+    cout << "Pasien dengan nama " << nama << " tidak ditemukan.\n";
+}
+
+void simpanDataPasien(const string& filename) {
+    ofstream file(filename);
+    if (file.is_open()) {
+        Pasien* temp = head;
+        while (temp != NULL) {
+            file << temp->nama << "," << temp->nik << "," << temp->umur << "," << temp->tanggalLahir << "," << temp->alamat << "," << temp->noTelepon << "," << temp->tujuanBerobat << "," << temp->keluhan << endl;
+
+            Jadwal* jadwalTemp = temp->jadwalHead;
+            while (jadwalTemp != nullptr) {
+                file << "JADWAL," << jadwalTemp->tanggal << "," << jadwalTemp->waktu << "," << jadwalTemp->deskripsi << endl;
+                jadwalTemp = jadwalTemp->next;
+            }
+
+            for (const auto& obat : temp->riwayatObat) {
+                file << "OBAT," << obat.namaObat << "," << obat.efekObat << endl;
+            }
+
+            for (const auto& resep : temp->daftarResep) {
+                file << "RESEP," << resep.namaObat << "," << resep.dosis << "," << resep.instruksi << endl;
+            }
+
+            temp = temp->next;
+        }
+        file.close();
+        cout << "Data pasien telah disimpan ke dalam file " << filename << endl;
+    } else {
+        cout << "Gagal membuka file " << filename << endl;
+    }
+}
+
+void muatDataPasien(const string& filename) {
+    ifstream file(filename);
+    if (file.is_open()) {
+        string line;
+        Pasien* pasienBaru = nullptr;
+        while (getline(file, line)) {
+            if (line.substr(0, 6) != "JADWAL" && line.substr(0, 4) != "OBAT" && line.substr(0, 5) != "RESEP") {
+                pasienBaru = new Pasien();
+                sscanf(line.c_str(), "%[^,],%[^,],%d,%[^,],%[^,],%[^,],%[^,],%[^\n]", pasienBaru->nama.c_str(), pasienBaru->nik.c_str(), &pasienBaru->umur, pasienBaru->tanggalLahir.c_str(), pasienBaru->alamat.c_str(), pasienBaru->noTelepon.c_str(), pasienBaru->tujuanBerobat.c_str(), pasienBaru->keluhan.c_str());
+                pasienBaru->jadwalHead = nullptr;
+                pasienBaru->next = head;
+                head = pasienBaru;
+            } else if (line.substr(0, 6) == "JADWAL") {
+                Jadwal* jadwalBaru = new Jadwal();
+                sscanf(line.c_str(), "JADWAL,%[^,],%[^,],%[^\n]", jadwalBaru->tanggal.c_str(), jadwalBaru->waktu.c_str(), jadwalBaru->deskripsi.c_str());
+                jadwalBaru->next = pasienBaru->jadwalHead;
+                pasienBaru->jadwalHead = jadwalBaru;
+            } else if (line.substr(0, 4) == "OBAT") {
+                Obat obatBaru;
+                sscanf(line.c_str(), "OBAT,%[^,],%[^\n]", obatBaru.namaObat.c_str(), obatBaru.efekObat.c_str());
+                pasienBaru->riwayatObat.push_back(obatBaru);
+            } else if (line.substr(0, 5) == "RESEP") {
+                Resep resepBaru;
+                sscanf(line.c_str(), "RESEP,%[^,],%[^,],%[^\n]", resepBaru.namaObat.c_str(), resepBaru.dosis.c_str(), resepBaru.instruksi.c_str());
+                pasienBaru->daftarResep.push_back(resepBaru);
+            }
+        }
+        file.close();
+        cout << "Data pasien telah dimuat dari file " << filename << endl;
+    } else {
+        cout << "Gagal membuka file " << filename << endl;
+    }
+}
+
+void tambahObat(string nama, string namaObat, string dosis, string instruksi) {
+    Pasien* temp = head;
+    while(temp != NULL) {
+        if(temp->nama == nama) {
+            Resep resepBaru = {namaObat, dosis, instruksi};
+            temp->daftarResep.push_back(resepBaru);
+            cout << "Resep obat untuk pasien " << nama << " telah ditambahkan.\n";
+            return;
+        }
+        temp = temp->next;
+    }
+    cout << "Pasien dengan nama " << nama << " tidak ditemukan.\n";
+}
+
+void tambahJadwalPerawatan(string namaPasien, string tanggal, string waktu, string deskripsi) {
+    Pasien* temp = head;
+    while(temp != NULL) {
+        if(temp->nama == namaPasien) {
+            Jadwal* jadwalBaru = new Jadwal();
+            jadwalBaru->tanggal = tanggal;
+            jadwalBaru->waktu = waktu;
+            jadwalBaru->deskripsi = deskripsi;
+            jadwalBaru->next = temp->jadwalHead;
+            temp->jadwalHead = jadwalBaru;
+            cout << "Jadwal perawatan untuk pasien " << namaPasien << " telah ditambahkan.\n";
+            return;
+        }
+        temp = temp->next;
+    }
+    cout << "Pasien dengan nama " << namaPasien << " tidak ditemukan.\n";
+}
+
+void editJadwalPerawatan(string namaPasien) {
+    Pasien* temp = head;
+    while(temp != NULL) {
+        if(temp->nama == namaPasien) {
+            cout << "Masukkan tanggal jadwal yang ingin diedit (format: yyyy-mm-dd): ";
+            string tanggal;
+            cin.ignore();
+            getline(cin, tanggal);
+            Jadwal* jadwalTemp = temp->jadwalHead;
+            while(jadwalTemp != NULL) {
+                if(jadwalTemp->tanggal == tanggal) {
+                    cout << "Masukkan tanggal baru : ";
+                    string tanggalBaru;
+                    getline(cin, tanggalBaru);
+                    if (!tanggalBaru.empty()) {
+                        jadwalTemp->tanggal = tanggalBaru;
+                    }
+
+                    cout << "Masukkan waktu baru: ";
+                    string waktuBaru;
+                    getline(cin, waktuBaru);
+                    if (!waktuBaru.empty()) {
+                        jadwalTemp->waktu = waktuBaru;
+                    }
+
+                    cout << "Masukkan deskripsi baru : ";
+                    string deskripsiBaru;
+                    getline(cin, deskripsiBaru);
+                    if (!deskripsiBaru.empty()) {
+                        jadwalTemp->deskripsi = deskripsiBaru;
+                    }
+
+                    cout << "Jadwal perawatan telah diperbarui.\n";
+                    return;
+                }
+                jadwalTemp = jadwalTemp->next;
+            }
+            cout << "Jadwal dengan tanggal " << tanggal << " tidak ditemukan.\n";
+            return;
+        }
+        temp = temp->next;
+    }
+    cout << "Pasien dengan nama " << namaPasien << " tidak ditemukan.\n";
+}
+
+void tampilkanJadwalPerawatan() {
+    Pasien* temp = head;
+    while(temp != NULL) {
+        cout << "Jadwal perawatan untuk pasien " << temp->nama << ":\n";
+        Jadwal* jadwalTemp = temp->jadwalHead;
+        while(jadwalTemp != NULL) {
+            cout << "Tanggal: " << jadwalTemp->tanggal << ", Waktu: " << jadwalTemp->waktu << ", Deskripsi: " << jadwalTemp->deskripsi << endl;
+            jadwalTemp = jadwalTemp->next;
+        }
+        temp = temp->next;
+    }
+}
+
+
+int main() {
+    string username, password, role;
+    bool loggedIn = false;
+
+    while (true) {
+        while (!loggedIn) {
+            int pilihan;
+            cout << "=== Selamat Datang di Sistem Manajemen Rumah Sakit Umum Kota Bogor ===" << endl;
+            cout << "1. Login" << endl;
+            cout << "2. Registrasi" << endl;
+            cout << "Pilihan: ";
+            cin >> pilihan;
+
+            if (pilihan == 1) {
+                cout << "=== Login Untuk Masuk ke Sistem Manajemen ===" << endl;
+                cout << "Username: ";
+                cin >> username;
+                cout << "Password: ";
+                cin >> password;
+
+                if (validasiPengguna(username, password, role)) {
+                    loggedIn = true;
+                    cout << "Login berhasil sebagai " << role << endl;
+                } else {
+                    cout << "Username atau password salah. Silakan coba lagi." << endl;
+                }
+            } else if (pilihan == 2) {
+                registrasiPengguna();
+            } else {
+                cout << "Pilihan tidak valid. Silakan coba lagi." << endl;
+            }
+        }
+
+        if (role == "admin") {
+            int pilihan;
+            do {
+                cout << "\n=== Selamat Datang di Menu Admin Rumah Sakit===" << endl;
+                cout << "1. Tambah Pasien" << endl;
+                cout << "2. Tampilkan Semua Pasien" << endl;
+                cout << "3. Edit Data Pasien" << endl;
+                cout << "4. Hapus Data Pasien" << endl;
+                cout << "5. Simpan Data Pasien" << endl;
+                cout << "6. Muat Data Pasien" << endl;
+                cout << "7. Edit Jadwal Perawatan" << endl;
+                cout << "0. Logout" << endl;
+                cout << "Pilihan: ";
+                cin >> pilihan;
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+                if (pilihan == 1) {
+                    string namaLengkap, nik, tanggalLahir, alamat, noTelepon, tujuanBerobat, keluhan;
+                    int umur;
+                    cout << "Nama Lengkap: ";
+                    getline(cin, namaLengkap);
+                    cout << "NIK: ";
+                    getline(cin, nik);
+                    cout << "Umur: ";
+                    cin >> umur;
+                    cin.ignore();
+                    cout << "Tanggal Lahir: ";
+                    getline(cin, tanggalLahir);
+                    cout << "Alamat: ";
+                    getline(cin, alamat);
+                    cout << "No Telepon: ";
+                    getline(cin, noTelepon);
+                    cout << "Tujuan Berobat (Umum/PoliGigi/THT): ";
+                    getline(cin, tujuanBerobat);
+                    cout << "Keluhan: ";
+                    getline(cin, keluhan);
+
+                    tambahPasien(namaLengkap, nik, umur, tanggalLahir, alamat, noTelepon, tujuanBerobat, keluhan);
+                    cout << "Pasien berhasil ditambahkan." << endl;
+                } else if (pilihan == 2) {
+                    tampilkanPasien();
+                } else if (pilihan == 3) {
+                    string nama;
+                    cout << "Masukkan nama pasien yang akan diedit: ";
+                    getline(cin, nama);
+                    editPasien(nama);
+                } else if (pilihan == 4) {
+                    string nama;
+                    cout << "Masukkan nama pasien yang akan dihapus: ";
+                    getline(cin, nama);
+                    hapusPasien(nama);
+                } else if (pilihan == 5) {
+                    string filename;
+                    cout << "Masukkan nama file untuk menyimpan data pasien: ";
+                    getline(cin, filename);
+                    simpanDataPasien(filename);
+                } else if (pilihan == 6) {
+                    string filename;
+                    cout << "Masukkan nama file untuk memuat data pasien: ";
+                    getline(cin, filename);
+                    muatDataPasien(filename);
+                } else if (pilihan == 7) {
+                    string namaPasien;
+                    cout << "Masukkan nama pasien: ";
+                    getline(cin, namaPasien);
+                    editJadwalPerawatan(namaPasien);
+                } else if (pilihan == 0) {
+                    loggedIn = false;
+                    cout << "Logout berhasil." << endl;
+                } else {
+                    cout << "Pilihan tidak valid. Silakan coba lagi." << endl;
+                }
+            } while (loggedIn);
+        } else if (role == "dokter") {
+            int pilihan;
+            do {
+                cout << "\n=== Selamat Datang Dokter di Rumah Sakit Kota Bogor ===" << endl;
+                cout << "1. Cari Pasien" << endl;
+                cout << "2. Tambah Obat" << endl;
+                cout << "3. Buat Resep" << endl;
+                cout << "4. Edit Obat" << endl;
+                cout << "5. Tambah Jadwal Perawatan" << endl;
+                cout << "0. Logout" << endl;
+                cout << "Pilihan: ";
+                cin >> pilihan;
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+                if (pilihan == 1) {
+                    string nama;
+                    cout << "Masukkan nama pasien yang akan dicari: ";
+                    getline(cin, nama);
+                    cariPasien(nama);
+                } else if (pilihan == 2) {
+                    string nama, namaObat, efekObat;
+                    cout << "Masukkan nama pasien: ";
+                    getline(cin, nama);
+                    cout << "Masukkan nama obat: ";
+                    getline(cin, namaObat);
+                    cout << "Masukkan efek obat: ";
+                    getline(cin, efekObat);
+                    tambahRiwayatObat(nama, namaObat, efekObat);
+                } else if (pilihan == 3) {
+                    string nama, namaObat, dosis, instruksi;
+                    cout << "Masukkan nama pasien: ";
+                    getline(cin, nama);
+                    cout << "Masukkan nama obat: ";
+                    getline(cin, namaObat);
+                    cout << "Masukkan dosis: ";
+                    getline(cin, dosis);
+                    cout << "Masukkan instruksi: ";
+                    getline(cin, instruksi);
+                    tambahObat(nama, namaObat, dosis, instruksi);
+                } else if (pilihan == 4) {
+                    string namaPasien;
+                    cout << "Masukkan nama pasien: ";
+                    getline(cin, namaPasien);
+                    editRiwayatObat(namaPasien);
+                } else if (pilihan == 5) { 
+                    string namaPasien, tanggal, waktu, deskripsi;
+                    cout << "Masukkan nama pasien: ";
+                    getline(cin, namaPasien);
+                    cout << "Masukkan tanggal perawatan (format: yyyy-mm-dd): ";
+                    getline(cin, tanggal);
+                    cout << "Masukkan waktu perawatan: ";
+                    getline(cin, waktu);
+                    cout << "Masukkan deskripsi perawatan: ";
+                    getline(cin, deskripsi);
+                    tambahJadwalPerawatan(namaPasien, tanggal, waktu, deskripsi);
+                }  else if (pilihan == 0) {
+                    loggedIn = false;
+                    cout << "Logout berhasil." << endl;
+                } else {
+                    cout << "Pilihan tidak valid. Silakan coba lagi." << endl;
+                }
+            } while (loggedIn);
+        } else if (role == "resepsionis") {
+            int pilihan;
+            do {
+                cout << "\n=== Selamat Datang di Menu Resepsionis ===" << endl;
+                cout << "1. Tambah Pasien" << endl;
+                cout << "2. Tampilkan Semua Pasien" << endl;
+                cout << "3. Tampilkan Jadwal Perawatan" << endl;
+                cout << "4. Cari Pasien" << endl;
+                cout << "5. Sudah pernah kesini? Muat data pasien" << endl;
+                cout << "0. Logout" << endl;
+                cout << "Pilihan: ";
+                cin >> pilihan;
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+                if (pilihan == 1) {
+                    string namaLengkap, nik, tanggalLahir, alamat, noTelepon, tujuanBerobat, keluhan;
+                    int umur;
+                    cout << "Nama Lengkap: ";
+                    getline(cin, namaLengkap);
+                    cout << "NIK: ";
+                    getline(cin, nik);
+                    cout << "Umur: ";
+                    cin >> umur;
+                    cin.ignore();
+                    cout << "Tanggal Lahir: ";
+                    getline(cin, tanggalLahir);
+                    cout << "Alamat: ";
+                    getline(cin, alamat);
+                    cout << "No Telepon: ";
+                    getline(cin, noTelepon);
+                    cout << "Tujuan Berobat (Umum/PoliGigi/THT): ";
+                    getline(cin, tujuanBerobat);
+                    cout << "Keluhan: ";
+                    getline(cin, keluhan);
+
+                    tambahPasien(namaLengkap, nik, umur, tanggalLahir, alamat, noTelepon, tujuanBerobat, keluhan);
+                    cout << "Pasien atas nama " << namaLengkap << " berhasil ditambahkan." << endl;
+                } else if (pilihan == 2) {
+                    tampilkanPasien();
+                } else if (pilihan == 3) {
+                    tampilkanJadwalPerawatan();
+                } else if (pilihan == 4) { 
+                    string nama;
+                    cout << "Masukkan nama pasien yang dicari: ";
+                    getline(cin, nama);
+                    cariPasien(nama);
+                } else if (pilihan == 5) {
+                    string filename;
+                    cout << "Masukkan nama file untuk memuat data pasien: ";
+                    getline(cin, filename);
+                    muatDataPasien(filename);
+                } else if (pilihan == 0) {
+                    loggedIn = false;
+                    cout << "Logout berhasil." << endl;
+                } else {
+                    cout << "Pilihan tidak valid. Silakan coba lagi." << endl;
+                }
+            } while (loggedIn);
+        }
+    }
+
+    return 0;
+}
